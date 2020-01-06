@@ -1,12 +1,3 @@
-function setup()
-{
-  console.log("setup function is not defined!")
-}
+import "engine.js"
 
-function mainloop()
-{
-  console.log("mainloop running...")
-}
-
-setup()
-mainloop()
+console.log("main.js imported!")
