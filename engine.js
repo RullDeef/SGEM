@@ -1,6 +1,6 @@
-export let targetCanvas, targetContext
+let targetCanvas, targetContext
 
-export function initCanvas()
+function initCanvas()
 {
     targetCanvas = document.createElement("canvas")
     targetCanvas.width = window.innerWidth
@@ -15,12 +15,21 @@ export function initCanvas()
     targetContext = targetCanvas.getContext("2d")
 }
 
-export function setup()
+function setup()
 {
     console.log("setup function is not defined!")
 }
 
-export function mainloop()
+function mainloop()
 {
     console.log("mainloop running...")
+}
+
+export default
+{
+    targetCanvas: targetCanvas,
+    targetContext: targetContext,
+    initCanvas: initCanvas,
+    setup: setup,
+    mainloop: mainloop
 }
