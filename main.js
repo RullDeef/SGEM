@@ -2,6 +2,10 @@ Math.TAU = 2 * Math.PI
 Math.degToRad = Math.PI / 180
 Math.radToDeg = 180 / Math.PI
 
+Math.Clamp = function(value, a, b) {
+  return Math.max(a, Math.min(value, b))
+}
+
 
 
 class Random {
@@ -71,6 +75,48 @@ class Vector {
 
   static get one() {
     return new Vector(1, 1)
+  }
+
+  // clamped version
+  static Lerp(v1, v2, t) {
+    t = Math.Clamp(t, 0, 1)
+    const x = v1.x + (v2.x - v1.x) * t
+    const y = v1.y + (v2.y - v1.y) * t
+    return new Vector(x, y)
+  }
+
+  // unclamped version
+  static LerpUnclamped(v1, v2, t) {
+    const x = v1.x + (v2.x - v1.x) * t
+    const y = v1.y + (v2.y - v1.y) * t
+    return new Vector(x, y)
+  }
+
+  // circular interpolation
+  // clamped version
+  static Clerp(v1, v2, t) {
+    t = Math.Clamp(t, 0, 1)
+    const r1 = v1.magnitude, r2 = v2.magnitude
+    const a1 = Math.atan2(v1.y, v1.x)
+    const a2 = Math.atan2(v2.y, v2.x)
+    const r = r1 + (r2 - r1) * t
+    const a = a1 + (a2 - a1) * t
+    const x = r * Math.cos(a)
+    const y = r * Math.sin(a)
+    return new Vector(x, y)
+  }
+
+  // circular interpolation
+  // unclamped version
+  static ClerpUnclamped(v1, v2, t) {
+    const r1 = v1.magnitude, r2 = v2.magnitude
+    const a1 = Math.atan2(v1.y, v1.x)
+    const a2 = Math.atan2(v2.y, v2.x)
+    const r = r1 + (r2 - r1) * t
+    const a = a1 + (a2 - a1) * t
+    const x = r * Math.cos(a)
+    const y = r * Math.sin(a)
+    return new Vector(x, y)
   }
 }
 
@@ -243,6 +289,101 @@ class Matrix3x3 {
 
 
 
+class Mesh {
+  path
+
+  constructor(points = []) {
+    this.path = new Float32Array(points)
+  }
+  
+  get points() {
+    const res = [], p = this.path
+    for (let i = 0; i < p.length; i += 2)
+      res.push(new Vector(p[i], p[i + 1]))
+      return res
+    }
+
+    set points(value) {
+      const res = []
+    for (let i = 0; i < value.length; i++)
+      res.push(value[i].x, value[i].y)
+    this.path = new Float32Array(res)
+  }
+  
+  // returns vectors pointing around
+  // mesh verticies
+  get flow() {
+    const res = [], p = this.path
+    for(let i = 0; i < p.length; i += 2) {
+      const x1 = p[i - 2], y1 = p[i - 1]
+      const x2 = p[i], y2 = p[i + 1]
+      res.push(new Vector(x2 - x1, y2 - y1))
+    }
+    const x1 = p[p.length - 2], y1 = p[p.length - 1]
+    const x2 = p[0], y2 = p[1]
+    res.push(new Vector(x2 - x1, y2 - y1))
+    return res
+  }
+
+  get circumference() {
+    const p = this.path
+    const x1 = p[p.length - 2]
+    const y1 = p[p.length - 1]
+    const x2 = p[0], y2 = p[1]
+    let circumference = Math.hypot(x1 - x2, y1 - y2)
+    for (let i = 2; i < p.length; i += 2) {
+      const x1 = p[i - 2], y1 = p[i - 1]
+      const x2 = p[i], y2 = p[i + 1]
+      area += Math.hypot(x1 - x2, y1 - y2)
+    }
+    return circumference
+  }
+
+  get area() {
+    const p = this.path
+    const x1 = p[p.length-2]
+    const y1 = p[p.length-1]
+    const x2 = p[0], y2 = p[1]
+    let area = x1*y2 - x2*y1
+    for(let i = 2; i < p.length; i += 2) {
+      const x1 = p[i-2], y1 = p[i-1]
+      const x2 = p[i  ], y2 = p[i+1]
+      area += x1*y2 - x2*y1
+    }
+    return 0.5 * Math.abs(area)
+  }
+
+  IsInside(point) {
+    const p = this.path, len = p.length
+    const x = point.x, y = point.y
+    let x1, y1, x2, y2, count = 0
+    x1 = p[len - 2]; y1 = p[len - 1]; x2 = p[0]; y2 = p[1]
+    if ((y - y1) * (y - y2) < 0 && (x < x1 || x < x2) &&
+    (x1 > x && x2 > x || (x2 - x1) * (y - y1) / (y2 - y1) >= x - x1))
+      count++
+    for (let i = 2; i < len; i += 2) {
+      x1 = p[i - 2]; y1 = p[i - 1]; x2 = p[i]; y2 = p[i + 1]
+      if ((y - y1) * (y - y2) < 0 && (x < x1 || x < x2) &&
+        (x1 > x && x2 > x || (x2 - x1) * (y - y1) / (y2 - y1) >= x - x1))
+        count++
+      }
+    return count & 1
+  }
+
+  static Circle(center, radius, pointAmount) {
+    const points = []
+    for(let i = 0; i < pointAmount; i++) {
+      const a = i / pointAmount * Math.TAU
+      const x = center.x + radius * Math.cos(a)
+      const y = center.y + radius * Math.sin(a)
+      points.push(x, y)
+    }
+    return new Mesh(points)
+  }
+}
+
+
+
 class Rect {
   position; size
 
@@ -250,31 +391,23 @@ class Rect {
     this.position = pos
     this.size = size
   }
-}
 
-
-
-class Mesh {
-  path
-
-  constructor(points = []) {
-    this.path = new Float32Array(points)
+  get area() {
+    return this.size.x * this.size.y
   }
 
-  get points() {
-    const res = [], p = this.path
-    for (let i = 0; i < p.length; i += 2)
-      res.push(new Vector(p[i], p[i + 1]))
-    return res
+  GetMesh() {
+    const x1 = this.position.x
+    const y1 = this.position.y
+    const x2 = x1 + this.size.x
+    const y2 = y1 + this.size.y
+    return new Mesh([x1, y1, x2, y1, x2, y2, x1, y2])
   }
 
-  set points(value) {
-    const res = []
-    for (let i = 0; i < value.length; i++) {
-      res.push(value[i].x)
-      res.push(value[i].y)
-    }
-    this.path = new Float32Array(res)
+  IsInside(point) {
+    point = point.Subtract(this.position)
+    return (0 <= point.x && point.x <= this.size.x)
+      && (0 <= point.y && point.y <= this.size.y)
   }
 }
 
@@ -293,15 +426,69 @@ class Color {
       ${this.g},${this.b},${this.a})`
   }
 
-  static get white() {
-    return new Color(255, 255, 255, 1)
+  get hex() {
+    let r = this.r.toString(16)
+    r = r.length == 1 ? "0" + r : r
+    let g = this.g.toString(16)
+    g = g.length == 1 ? "0" + g : g
+    let b = this.b.toString(16)
+    b = b.length == 1 ? "0" + b : b
+    let a = this.a.toString(16)
+    a = a.length == 1 ? "0" + a : a
+    return "#" + r + g + b + a
+  }
+
+  static FromHex(hex) {
+    const res = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})?$/i.exec(hex)
+    return res ? new Color(parseInt(res[1], 16), parseInt(res[2], 16),
+      parseInt(res[3], 16), res.length > 4 ? parseInt(res[4], 16) : 1) : null
   }
 
   static get black() {
     return new Color(0, 0, 0, 1)
   }
 
+  static get white() {
+    return new Color(255, 255, 255, 1)
+  }
+
+  static get red() {
+    return new Color(255, 0, 0, 1)
+  }
+  
+  static get green() {
+    return new Color(0, 255, 0, 1)
+  }
+  
+  static get blue() {
+    return new Color(0, 0, 255, 1)
+  }
+
+  static get yellow() {
+    return new Color(255, 255, 0, 1)
+  }
+
+  static get magenta() {
+    return new Color(255, 0, 255, 1)
+  }
+
+  static get cyan() {
+    return new Color(0, 255, 255, 1)
+  }
+  
+  // clamped version
   static Lerp(colA, colB, t) {
+    t = Math.Clamp(t, 0, 1)
+    const result = Color.black
+    result.r = colA.r + (colB.r - colA.r) * t
+    result.g = colA.g + (colB.g - colA.g) * t
+    result.b = colA.b + (colB.b - colA.b) * t
+    result.a = colA.a + (colB.a - colA.a) * t
+    return result
+  }
+
+  // unclamped version
+  static LerpUnclamped(colA, colB, t) {
     const result = Color.black
     result.r = colA.r + (colB.r - colA.r) * t
     result.g = colA.g + (colB.g - colA.g) * t
@@ -724,6 +911,36 @@ class RigidBody extends MonoBehavior {
 
 
 
+class Clickable extends MonoBehavior {
+  mesh
+  _prevTouching = false
+
+  Clickable(entity) {
+    super(entity)
+    this.mesh = Mesh.Circle(Vector.zero, 1, 10)
+  }
+
+  Update() {
+    if (!Input.isTouching && this._prevTouching) {
+      let p = Input.touchStartPos
+      p = Engine.currentScene.camera.
+        camera.projMat.inverse.MultPoint(p)
+      p = this.GetComponent(Transform).
+        worldMatrix.inverse.MultPoint(p)
+
+      if (this.mesh.IsInside(p))
+        this.OnClick()
+    }
+
+    this._prevTouching = Input.isTouching
+      && !Input.isDragging
+  }
+
+  OnClick() { }
+}
+
+
+
 class Entity {
   name; behaviors; parent; active
   children
@@ -753,6 +970,104 @@ class Entity {
   AddChild(entity) {
     entity.parent = this
     this.children.push(entity)
+  }
+
+  // TODO: complete
+  Clone(parentTransform) {
+    const res = new Enitity(this.name + " (Clone)")
+
+    // copy all behavoirs from current object to result
+    this.behaviors.forEach(mb => {
+      res.AddComponent(mb.constructor)
+    })
+
+    return res
+  }
+}
+
+
+
+class Prefab {
+  _root
+
+  constructor(entity) {
+    this._root = entity
+  }
+
+  MakeInstance(parentTransform) {
+    return this._root.Clone(parentTransform)
+  }
+}
+
+
+
+// useful prefabs go here!
+
+// joystick prefab!
+class Joystick {
+  static Stick = class extends Monobehaviour {
+    cr; following = false
+
+    Start() {
+      this.cr = this.GetComponent(CircleRenderer)
+    }
+
+    Update() {
+      if (Input.isTouching) {
+        let pos = Engine.currentScene.camera.
+          camera.projMat.inverse.
+          MultPoint(Input.touchStartPos)
+
+        let delta = pos.Subtract(this.entity.
+          parent.transform.position)
+
+        if (delta.magnitude <= 1)
+          this.following = true
+      } else this.following = false
+
+      if (this.following) {
+        let pos = Engine.currentScene.camera.
+          camera.projMat.inverse.
+          MultPoint(Input.touchPos)
+
+        let delta = pos.Subtract(this.entity.
+          parent.transform.position)
+
+        if (delta.magnitude > 1)
+          delta = delta.normalized
+
+        this.cr.stroke = Color.black
+        this.entity.transform.
+          localPosition = delta
+      } else {
+        this.cr.stroke = new Color
+          (0, 0, 0, 0.2)
+        this.entity.transform.
+          localPosition = Vector.zero
+      }
+    }
+  }
+
+  static MakeInstance() {
+    const js = new Entity("Joystick")
+
+    const cr = js.AddComponent(CircleRenderer)
+    cr.fill = new Color(255, 255, 255, 0.2)
+    cr.stroke = new Color(0, 0, 0, 0.2)
+
+    { // add stick as a child
+      const st = new Entity("Joystick stick")
+
+      const cr = st.AddComponent(CircleRenderer)
+      cr.radius = 0.3
+      cr.fill = new Color(255, 255, 255, 0.2)
+      cr.stroke = new Color(0, 0, 0, 0.5)
+
+      st.AddComponent(Joystick.Stick)
+      js.AddChild(st)
+    }
+
+    return js
   }
 }
 
