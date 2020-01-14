@@ -2,7 +2,7 @@ Math.TAU = 2 * Math.PI
 Math.degToRad = Math.PI / 180
 Math.radToDeg = 180 / Math.PI
 
-Math.Clamp = function(value, a, b) {
+Math.Clamp = function (value, a, b) {
   return Math.max(a, Math.min(value, b))
 }
 
@@ -295,26 +295,26 @@ class Mesh {
   constructor(points = []) {
     this.path = new Float32Array(points)
   }
-  
+
   get points() {
     const res = [], p = this.path
     for (let i = 0; i < p.length; i += 2)
       res.push(new Vector(p[i], p[i + 1]))
-      return res
-    }
+    return res
+  }
 
-    set points(value) {
-      const res = []
+  set points(value) {
+    const res = []
     for (let i = 0; i < value.length; i++)
       res.push(value[i].x, value[i].y)
     this.path = new Float32Array(res)
   }
-  
+
   // returns vectors pointing around
   // mesh verticies
   get flow() {
     const res = [], p = this.path
-    for(let i = 0; i < p.length; i += 2) {
+    for (let i = 0; i < p.length; i += 2) {
       const x1 = p[i - 2], y1 = p[i - 1]
       const x2 = p[i], y2 = p[i + 1]
       res.push(new Vector(x2 - x1, y2 - y1))
@@ -341,14 +341,14 @@ class Mesh {
 
   get area() {
     const p = this.path
-    const x1 = p[p.length-2]
-    const y1 = p[p.length-1]
+    const x1 = p[p.length - 2]
+    const y1 = p[p.length - 1]
     const x2 = p[0], y2 = p[1]
-    let area = x1*y2 - x2*y1
-    for(let i = 2; i < p.length; i += 2) {
-      const x1 = p[i-2], y1 = p[i-1]
-      const x2 = p[i  ], y2 = p[i+1]
-      area += x1*y2 - x2*y1
+    let area = x1 * y2 - x2 * y1
+    for (let i = 2; i < p.length; i += 2) {
+      const x1 = p[i - 2], y1 = p[i - 1]
+      const x2 = p[i], y2 = p[i + 1]
+      area += x1 * y2 - x2 * y1
     }
     return 0.5 * Math.abs(area)
   }
@@ -359,20 +359,20 @@ class Mesh {
     let x1, y1, x2, y2, count = 0
     x1 = p[len - 2]; y1 = p[len - 1]; x2 = p[0]; y2 = p[1]
     if ((y - y1) * (y - y2) < 0 && (x < x1 || x < x2) &&
-    (x1 > x && x2 > x || (x2 - x1) * (y - y1) / (y2 - y1) >= x - x1))
+      (x1 > x && x2 > x || (x2 - x1) * (y - y1) / (y2 - y1) >= x - x1))
       count++
     for (let i = 2; i < len; i += 2) {
       x1 = p[i - 2]; y1 = p[i - 1]; x2 = p[i]; y2 = p[i + 1]
       if ((y - y1) * (y - y2) < 0 && (x < x1 || x < x2) &&
         (x1 > x && x2 > x || (x2 - x1) * (y - y1) / (y2 - y1) >= x - x1))
         count++
-      }
+    }
     return count & 1
   }
 
   static Circle(center, radius, pointAmount) {
     const points = []
-    for(let i = 0; i < pointAmount; i++) {
+    for (let i = 0; i < pointAmount; i++) {
       const a = i / pointAmount * Math.TAU
       const x = center.x + radius * Math.cos(a)
       const y = center.y + radius * Math.sin(a)
@@ -387,7 +387,7 @@ class Mesh {
 class Rect {
   position; size
 
-  constructor(pos, size) {
+  constructor(pos = Vector.zero, size = Vector.zero) {
     this.position = pos
     this.size = size
   }
@@ -455,11 +455,11 @@ class Color {
   static get red() {
     return new Color(255, 0, 0, 1)
   }
-  
+
   static get green() {
     return new Color(0, 255, 0, 1)
   }
-  
+
   static get blue() {
     return new Color(0, 0, 255, 1)
   }
@@ -475,7 +475,7 @@ class Color {
   static get cyan() {
     return new Color(0, 255, 255, 1)
   }
-  
+
   // clamped version
   static Lerp(colA, colB, t) {
     t = Math.Clamp(t, 0, 1)
@@ -605,6 +605,7 @@ class Transform extends MonoBehavior {
     if (entity.parent != null) {
       this.worldMatrix = entity.parent.
         transform.worldMatrix
+      this._Update_w()
     }
     else
       this.worldMatrix = Matrix3x3.identity
@@ -915,7 +916,7 @@ class Clickable extends MonoBehavior {
   mesh
   _prevTouching = false
 
-  Clickable(entity) {
+  constructor(entity) {
     super(entity)
     this.mesh = Mesh.Circle(Vector.zero, 1, 10)
   }
@@ -987,25 +988,11 @@ class Entity {
 
 
 
-class Prefab {
-  _root
-
-  constructor(entity) {
-    this._root = entity
-  }
-
-  MakeInstance(parentTransform) {
-    return this._root.Clone(parentTransform)
-  }
-}
-
-
-
 // useful prefabs go here!
 
 // joystick prefab!
-class Joystick {
-  static Stick = class extends Monobehaviour {
+function Joystick() {
+  Joystick.Stick = class extends MonoBehaviour {
     cr; following = false
 
     Start() {
@@ -1048,27 +1035,25 @@ class Joystick {
     }
   }
 
-  static MakeInstance() {
-    const js = new Entity("Joystick")
+  const js = new Entity("Joystick")
 
-    const cr = js.AddComponent(CircleRenderer)
+  const cr = js.AddComponent(CircleRenderer)
+  cr.fill = new Color(255, 255, 255, 0.2)
+  cr.stroke = new Color(0, 0, 0, 0.2)
+
+  { // add stick as a child
+    const st = new Entity("Joystick stick")
+
+    const cr = st.AddComponent(CircleRenderer)
+    cr.radius = 0.3
     cr.fill = new Color(255, 255, 255, 0.2)
-    cr.stroke = new Color(0, 0, 0, 0.2)
+    cr.stroke = new Color(0, 0, 0, 0.5)
 
-    { // add stick as a child
-      const st = new Entity("Joystick stick")
-
-      const cr = st.AddComponent(CircleRenderer)
-      cr.radius = 0.3
-      cr.fill = new Color(255, 255, 255, 0.2)
-      cr.stroke = new Color(0, 0, 0, 0.5)
-
-      st.AddComponent(Joystick.Stick)
-      js.AddChild(st)
-    }
-
-    return js
+    st.AddComponent(Joystick.Stick)
+    js.AddChild(st)
   }
+
+  return js
 }
 
 
@@ -1113,11 +1098,30 @@ class Scene {
 
 
 
+// additional physics engine for
+// handling collisions and bodies
+class Physics {
+  // whenever collider is created it goes here
+  static colliders = []
+
+  static CheckCollisions() {
+    const c = Physics.colliders
+    for (let i = 1; i < c.length; i++)
+      for (let j = 0; j < i; j++) {
+        if (Physics._CheckCollision(c[i], c[j])) {
+          // pass. Do later
+        }
+      }
+  }
+}
+
+
+
 class Engine {
   static targetContext
   static targetCanvas
 
-  static currentScene
+  static currentScene = null
 
   static dpi = 5
 
@@ -1193,6 +1197,12 @@ class Engine {
       mb.Update()
     })
 
+    if(Engine.currentScene == null) {
+      Debug.Error("Current scene is not specified.")
+      Debug.Warn("Use Engine.LoadScene(yourScene) to fix.")
+      return
+    }
+
     // render stuff
     Engine.targetContext.resetTransform()
     Engine.targetContext.clearRect(0, 0,
@@ -1214,6 +1224,12 @@ class Engine {
       Engine.targetContext.restore()
     })
 
+    // render debug data over scene
+    if (Debug.active) {
+      Engine.targetContext.resetTransform()
+      Debug.RenderScreenMessages()
+    }
+
     // do time stuff here
     const now = Date.now() / 1000
     Time.deltaTime = now - Engine._startTime
@@ -1226,6 +1242,275 @@ class Engine {
   }
 
   static Setup() { } // define yourself
+}
+
+
+
+// debugging stuff next
+
+// base class for all types of screen messages
+class DebugMessage {
+  rect = new Rect() // bounding rect
+
+  // var that determines if current
+  // message can be chained to prev.
+  chainable = true
+
+  // var that holds message to
+  // which current was chained
+  chainedTo = null
+
+  // method for chaining two debug
+  // messages (m2 right to m1)
+  static Chain(m1, m2) {
+    if (m2.chainable) {
+      m2.rect.position.Copy(m1.rect.position)
+      m2.rect.position.x += m1.rect.size.x
+      m2.chainedTo = m1
+    }
+  }
+
+  // virtual method for actual
+  // rendering message on screen
+  // at position provided by rect
+  Render(ctx) { }
+}
+
+
+
+class TextMessage extends DebugMessage {
+  static Type = { log: 0, warning: 1, error: 2 }
+  type; text
+
+  constructor(text, type = 0) {
+    super()
+    this.text = text
+    this.type = type
+    this.rect.size.x = text.length *
+      Engine.dpi * Debug.fontSize * 0.6
+    this.rect.size.y = Debug.fontSize * Engine.dpi + 4
+  }
+
+  Render(ctx) {
+    ctx.textAlign = "left"
+    ctx.textBaseline = "top"
+    ctx.font = Debug.fontSize * Engine.dpi + "px monospace"
+    ctx.lineWidth = 2 * Engine.dpi
+
+    if (this.type == 0) {
+      ctx.strokeStyle = "white"
+      ctx.fillStyle = "black"
+    }
+    if (this.type == 1) {
+      ctx.strokeStyle = "cyan"
+      ctx.fillStyle = "orange"
+    }
+    if (this.type == 2) {
+      ctx.strokeStyle = "white"
+      ctx.fillStyle = "red"
+    }
+    ctx.translate(this.rect.position.x,
+      this.rect.position.y)
+    ctx.strokeText(this.text, 0, 0)
+    ctx.fillText(this.text, 0, 0)
+  }
+}
+
+
+
+class InfoMessage extends DebugMessage {
+  // info object created from given one
+  static InfoData = class {
+    object
+    className
+    properties = {}
+
+    constructor(obj) {
+      this.object = obj
+
+      let s = obj.constructor.toString()
+      if (s.startsWith("class")) {
+        this.className = /^class\s+([\w\d]+)/.exec(s)[1]
+        // grab all properties from object
+        for (let prop in obj) {
+          let dat = obj[prop]
+          if (typeof dat == "string") {
+            dat = "\"" + dat + "\""
+          }
+          else if (dat instanceof Array) {
+            dat = "Array(" + dat.length + ")"
+          }
+          else if (dat instanceof Entity) {
+            dat = "Entity(\"" + dat.name + "\")"
+          }
+          else if (dat instanceof MonoBehavior) {
+            const tp = /^class\s+([\w\d]+)/.
+              exec(dat.constructor.toString())[1]
+            dat = tp + " (from MonoBehavior)"
+          }
+          else {
+            dat = (dat || "null").toString()
+          }
+          this.properties[prop] = dat
+        }
+      } else {
+        Debug.Error("object given is not an instance of a class.")
+      }
+    }
+  }
+
+  chainable = false
+  object; info
+
+  constructor(obj) {
+    super()
+    this.object = obj
+    this.info = new InfoMessage.InfoData(obj)
+    let i = 2
+    for (let p in this.info) i++
+    this.rect.size.y = i * (Engine.dpi
+      * Debug.fontSize + 4)
+  }
+
+  Render(ctx) {
+    ctx.textAlign = "left"
+    ctx.textBaseline = "top"
+    ctx.font = Debug.fontSize * Engine.dpi + "px monospace"
+    ctx.lineWidth = 2 * Engine.dpi
+
+    ctx.strokeStyle = "white"
+    ctx.fillStyle = "rgb(25, 50, 255)"
+
+    let txt = this.info.className + " {\n"
+    for (let prop in this.info.properties) {
+      txt += "  " + prop + ": " + this.info.properties[prop] + "\n"
+    }
+
+    txt += "}"
+    txt = txt.split("\n")
+
+    ctx.translate(this.rect.position.x,
+      this.rect.position.y)
+    txt.forEach(txt => {
+      ctx.strokeText(txt, 0, 0)
+      ctx.fillText(txt, 0, 0)
+      ctx.translate(0, Debug.fontSize * Engine.dpi + 4)
+    })
+  }
+}
+
+
+
+class Debug {
+  static active = true
+  static fontSize = 8
+
+  static _screenMessages = []
+
+  // updates position of all messages
+  static _RepositionMessages() {
+    const amount = Debug._screenMessages.length
+    const maxAmount = Engine.targetCanvas.
+      height / (4 + 8 * Engine.dpi)
+
+    let pos = Vector.zero
+    Debug._screenMessages.forEach(msg => {
+      // if is chained to other - grab from
+      // current flow stream and reposition
+      if (msg.chainedTo != null) {
+        msg.rect.position.Copy(msg.
+          chainedTo.rect.position)
+        msg.rect.position.x += msg.
+          chainedTo.rect.size.x
+      } else {
+        msg.rect.position.Copy(pos)
+        pos.y += msg.rect.size.y
+      }
+    })
+
+    // if there is too much messages - remove last
+    if (amount > maxAmount) {
+      for (let i = 0; i < amount; i++)
+        if (Debug._screenMessages[i].type != 2) {
+          Debug._screenMessages.splice(i, 1)
+          break
+        }
+    }
+  }
+
+  // filters positioned messages
+  static _FilterMessages() {
+    const msgs = Debug._screenMessages
+    while (msgs.length != 0) {
+      let msg = msgs[msgs.length - 1]
+      if (msg.rect.position.y + msg.rect.
+        size.y < Engine.targetCanvas.width) {
+        // all good - leave cycle
+        break
+      } else {
+        // delete first log and
+        // warning messages
+        let founded = false
+        for (let i = 0; i < msgs.length; i++) {
+          if (msgs[i] instanceof TextMessage)
+            if (msgs[i].type != TextMessage.Type.error) {
+              msgs.splice(i, 1)
+              founded = true
+              break
+            }
+        }
+        if (!founded) {
+          // remove very first message
+          msgs.shift()
+        }
+      }
+    }
+  }
+
+  static RenderScreenMessages() {
+    const ctx = Engine.targetContext
+    const msgs = Debug._screenMessages
+
+    for (let i = 0; i < msgs.length; i++) {
+      ctx.save()
+      msgs[i].Render(ctx)
+      ctx.restore()
+    }
+  }
+
+  // base function for adding
+  // any type of message
+  static _AddMessage(msg) {
+    Debug._screenMessages.push(msg)
+    Debug._RepositionMessages()
+    Debug._FilterMessages()
+  }
+
+  // multifunctional method for showing
+  // info about object
+  static ShowInfo(obj) {
+    let msg = new InfoMessage(obj)
+    Debug._AddMessage(msg)
+    return msg
+  }
+
+  static Log(str) {
+    const msg = new TextMessage(str, 0)
+    Debug._AddMessage(msg)
+    return msg
+  }
+
+  static Warn(str) {
+    const msg = new TextMessage(str, 1)
+    Debug._AddMessage(msg)
+    return msg
+  }
+
+  static Error(str) {
+    const msg = new TextMessage(str, 2)
+    Debug._AddMessage(msg)
+    return msg
+  }
 }
 
 
