@@ -510,135 +510,6 @@ class Mesh {
 
 
 
-class Rect {
-  position; size
-
-  constructor(pos = Vector.zero, size = Vector.zero) {
-    this.position = pos
-    this.size = size
-  }
-
-  get area() {
-    return this.size.x * this.size.y
-  }
-
-  GetMesh() {
-    const x1 = this.position.x
-    const y1 = this.position.y
-    const x2 = x1 + this.size.x
-    const y2 = y1 + this.size.y
-    return new Mesh([x1, y1, x2, y1, x2, y2, x1, y2])
-  }
-
-  IsInside(point) {
-    point = point.Subtract(this.position)
-    return (0 <= point.x && point.x <= this.size.x)
-      && (0 <= point.y && point.y <= this.size.y)
-  }
-
-  toString() {
-    return "Rect(" + this.position +
-      ", " + this.size + ")"
-  }
-}
-
-
-
-class Color {
-  r; g; b; a
-
-  constructor(r, g, b, a) {
-    this.r = r; this.g = g
-    this.b = b; this.a = a
-  }
-
-  get rgba() {
-    return `rgba(${this.r},
-      ${this.g},${this.b},${this.a})`
-  }
-
-  get hex() {
-    let r = this.r.toString(16)
-    r = r.length == 1 ? "0" + r : r
-    let g = this.g.toString(16)
-    g = g.length == 1 ? "0" + g : g
-    let b = this.b.toString(16)
-    b = b.length == 1 ? "0" + b : b
-    let a = this.a.toString(16)
-    a = a.length == 1 ? "0" + a : a
-    return "#" + r + g + b + a
-  }
-
-  static FromHex(hex) {
-    const res = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})?$/i.exec(hex)
-    return res ? new Color(parseInt(res[1], 16), parseInt(res[2], 16),
-      parseInt(res[3], 16), res.length > 4 ? parseInt(res[4], 16) : 1) : null
-  }
-
-  static get black() {
-    return new Color(0, 0, 0, 1)
-  }
-
-  static get white() {
-    return new Color(255, 255, 255, 1)
-  }
-
-  static get red() {
-    return new Color(255, 0, 0, 1)
-  }
-
-  static get green() {
-    return new Color(0, 255, 0, 1)
-  }
-
-  static get blue() {
-    return new Color(0, 0, 255, 1)
-  }
-
-  static get yellow() {
-    return new Color(255, 255, 0, 1)
-  }
-
-  static get magenta() {
-    return new Color(255, 0, 255, 1)
-  }
-
-  static get cyan() {
-    return new Color(0, 255, 255, 1)
-  }
-
-  // clamped version
-  static Lerp(colA, colB, t) {
-    t = Math.Clamp(t, 0, 1)
-    const result = Color.black
-    result.r = colA.r + (colB.r - colA.r) * t
-    result.g = colA.g + (colB.g - colA.g) * t
-    result.b = colA.b + (colB.b - colA.b) * t
-    result.a = colA.a + (colB.a - colA.a) * t
-    return result
-  }
-
-  // unclamped version
-  static LerpUnclamped(colA, colB, t) {
-    const result = Color.black
-    result.r = colA.r + (colB.r - colA.r) * t
-    result.g = colA.g + (colB.g - colA.g) * t
-    result.b = colA.b + (colB.b - colA.b) * t
-    result.a = colA.a + (colB.a - colA.a) * t
-    return result
-  }
-
-  toString() {
-    return "Color(" +
-      Math.round(this.r * 1e3) / 1e3 + ", " +
-      Math.round(this.g * 1e3) / 1e3 + ", " +
-      Math.round(this.b * 1e3) / 1e3 + ", " +
-      Math.round(this.a * 1e3) / 1e3 + ")"
-  }
-}
-
-
-
 // Base resource class for any type of external data
 class Resource {
   static all = []
@@ -709,16 +580,6 @@ class Time {
   static time = 0
   static timeScale = 1
   static deltaTime = 0
-
-  static _lastClock = 0
-
-  // returns amount of ms since last call
-  static Clock() {
-    const now = Date.now()
-    const diff = now - Time._lastClock
-    Time._lastClock = now
-    return diff
-  }
 }
 
 
@@ -980,133 +841,6 @@ class Transform extends MonoBehavior {
 
 
 
-class BasicRenderer extends MonoBehavior {
-  stroke; fill; width
-  lineCap = "round"
-
-  constructor(entity) {
-    super(entity)
-    this.stroke = Color.black
-    this.fill = Color.white
-    this.width = 0.1
-  }
-
-  Render(ctx) {
-    ctx.strokeStyle = this.stroke.rgba
-    ctx.fillStyle = this.fill.rgba
-    ctx.lineWidth = this.width
-    ctx.lineCap = this.lineCap
-  }
-}
-
-
-
-class LineRenderer extends BasicRenderer {
-  points
-
-  constructor(entity) {
-    super(entity)
-    this.points =
-      [
-        new Vector(0, 0),
-        new Vector(1, 0)
-      ]
-    entity.lineRenderer = this
-  }
-
-  Render(ctx) {
-    super.Render(ctx)
-
-    ctx.beginPath()
-    this.points.forEach
-      (p => ctx.lineTo(p.x, p.y))
-    ctx.stroke()
-  }
-}
-
-
-
-class BoxRenderer extends BasicRenderer {
-  size;
-
-  constructor(entity) {
-    super(entity)
-    this.size = Vector.one
-    this.entity.boxRenderer = this
-  }
-
-  Render(ctx) {
-    super.Render(ctx)
-
-    ctx.fillRect
-      (-this.size.x / 2, -this.size.y / 2,
-        this.size.x, this.size.y)
-
-    ctx.strokeRect
-      (-this.size.x / 2, -this.size.y / 2,
-        this.size.x, this.size.y)
-  }
-}
-
-
-
-class CircleRenderer extends BasicRenderer {
-  radius;
-
-  constructor(entity) {
-    super(entity)
-    this.radius = 1
-    this.entity.circleRenderer = this
-  }
-
-  Render(ctx) {
-    super.Render(ctx)
-
-    ctx.beginPath()
-    ctx.arc(0, 0, this.radius, 0, Math.TAU)
-
-    ctx.fill()
-    ctx.stroke()
-  }
-}
-
-
-
-class PathRenderer extends BasicRenderer {
-  path = new Path2D()
-
-  constructor(entity) {
-    super(entity)
-    entity.meshRenderer = this
-  }
-
-  Render(ctx) {
-    super.Render(ctx)
-
-    ctx.fill(this.path)
-    ctx.stroke(this.path)
-  }
-}
-
-
-
-class ImageRenderer extends MonoBehavior {
-  image = null
-
-  constructor(entity) {
-    super(entity)
-    entity.imageRenderer = this
-  }
-
-  Render(ctx) {
-    const x = - this.image.width / 2
-    const y = - this.image.height / 2
-    ctx.drawImage(this.image, x, y)
-  }
-}
-
-
-
 class Camera extends MonoBehavior {
   projMat; _z; _fov
 
@@ -1143,36 +877,6 @@ class Camera extends MonoBehavior {
         Engine.targetCanvas.height,
         this._z, this._fov))
   }
-}
-
-
-
-class Clickable extends MonoBehavior {
-  mesh
-  _prevTouching = false
-
-  constructor(entity) {
-    super(entity)
-    this.mesh = Mesh.Circle(Vector.zero, 1, 10)
-  }
-
-  Update() {
-    if (!Input.isTouching && this._prevTouching) {
-      let p = Input.touchStartPos
-      p = Engine.currentScene.camera.
-        camera.projMat.inverse.MultPoint(p)
-      p = this.GetComponent(Transform).
-        worldMatrix.inverse.MultPoint(p)
-
-      if (this.mesh.IsInside(p))
-        this.OnClick()
-    }
-
-    this._prevTouching = Input.isTouching
-      && !Input.isDragging
-  }
-
-  OnClick = EmptyFunc
 }
 
 
@@ -1227,91 +931,13 @@ class Entity {
 
 
 
-// useful prefabs go here!
-
-// joystick prefab!
-function Joystick() {
-  Joystick.Stick =
-    class Stick extends MonoBehavior {
-      cr; following = false
-
-      Start() {
-        this.cr = this.GetComponent(CircleRenderer)
-      }
-
-      Update() {
-        if (Input.isTouching) {
-          let pos = Engine.currentScene.camera.
-            camera.projMat.inverse.
-            MultPoint(Input.touchStartPos)
-
-          let delta = pos.Subtract(this.entity.
-            parent.transform.position)
-
-          if (delta.magnitude <= 1)
-            this.following = true
-        } else this.following = false
-
-        if (this.following) {
-          let pos = Engine.currentScene.camera.
-            camera.projMat.inverse.
-            MultPoint(Input.touchPos)
-
-          let delta = pos.Subtract(this.entity.
-            parent.transform.position)
-
-          if (delta.magnitude > 1)
-            delta = delta.normalized
-
-          this.cr.stroke = Color.black
-          this.entity.transform.
-            localPosition = delta
-          // return data back
-          this.entity.parent.delta.Copy(delta)
-        } else {
-          this.cr.stroke = new Color
-            (0, 0, 0, 0.2)
-          this.entity.transform.
-            localPosition = Vector.zero
-          // return data back
-          this.entity.parent.delta.Copy(Vector.zero)
-        }
-      }
-    }
-
-  const js = new Entity("Joystick")
-  js.delta = Vector.zero
-
-  const cr = js.AddComponent(CircleRenderer)
-  cr.fill = new Color(255, 255, 255, 0.2)
-  cr.stroke = new Color(0, 0, 0, 0.2)
-
-  { // add stick as a child
-    const st = new Entity("Joystick stick")
-
-    const cr = st.AddComponent(CircleRenderer)
-    cr.radius = 0.3
-    cr.fill = new Color(255, 255, 255, 0.2)
-    cr.stroke = new Color(0, 0, 0, 0.5)
-
-    st.AddComponent(Joystick.Stick)
-    js.AddChild(st)
-  }
-
-  return js
-}
-
-
-
 class Scene {
   static scenes = []
   name; entities; camera
-  bgcolor
 
   constructor(name) {
     this.name = name
     this.entities = []
-    this.bgcolor = Color.white
 
     // create main camera
     this.camera = new Entity("Main Camera")
@@ -1763,10 +1389,6 @@ class Engine {
 
   static _startTime
   static Mainloop() {
-    // aliases
-    const ctx = Engine.targetContext
-    const scn = Engine.currentScene
-
     // run physics stuff first!
     Physics.CheckCollisions()
 
@@ -1775,7 +1397,7 @@ class Engine {
       mb.Update()
     })
 
-    if (scn == null) {
+    if (Engine.currentScene == null) {
       Debug.Error("Current scene is not specified.")
       Debug.Warn("Use Engine.LoadScene(yourScene) to fix.")
       Debug.RenderScreenMessages()
@@ -1783,28 +1405,29 @@ class Engine {
     }
 
     // render stuff
-    ctx.resetTransform()
-    ctx.fillStyle = scn.bgcolor.rgba
-    ctx.fillRect(0, 0,
+    Engine.targetContext.resetTransform()
+    Engine.targetContext.clearRect(0, 0,
       Engine.targetCanvas.width,
       Engine.targetCanvas.height)
 
-    ctx.transform(scn.camera.camera.
-      projMat.MultMat(scn.camera.
-        transform.worldMatrix))
+    Engine.targetContext.transform(
+      Engine.currentScene.camera.
+        camera.projMat.MultMat
+        (Engine.currentScene.camera.
+          transform.worldMatrix))
 
     MonoBehavior.all.forEach(mb => {
       if (!mb.entity.active) return
-      ctx.save()
-      ctx.transform(mb.entity.
-        transform.worldMatrix)
-      mb.Render(ctx)
-      ctx.restore()
+      Engine.targetContext.save()
+      Engine.targetContext.transform(
+        mb.entity.transform.worldMatrix)
+      mb.Render(Engine.targetContext)
+      Engine.targetContext.restore()
     })
 
     // render debug data over scene
     if (Debug.active) {
-      ctx.resetTransform()
+      Engine.targetContext.resetTransform()
       Debug.RenderScreenMessages()
     }
 
@@ -1821,362 +1444,6 @@ class Engine {
 
   // define yourself
   static Setup = EmptyFunc
-}
-
-
-
-// debugging stuff next
-
-// base class for all types of screen messages
-class DebugMessage {
-  rect = new Rect() // bounding rect
-
-  // var that determines if current
-  // message can be chained to prev.
-  chainable = true
-
-  // var that holds message to
-  // which current was chained
-  chainedTo = null
-
-  // method for chaining two debug
-  // messages (m2 right to m1)
-  static Chain(m1, m2) {
-    if (m2.chainable) {
-      m2.rect.position.Copy(m1.rect.position)
-      m2.rect.position.x += m1.rect.size.x
-      m2.chainedTo = m1
-    }
-  }
-
-  // virtual method for actual
-  // rendering message on screen
-  // at position provided by rect
-  Render(ctx) { }
-}
-
-
-
-class TextMessage extends DebugMessage {
-  static Type = { log: 0, warning: 1, error: 2 }
-  type; text
-
-  constructor(text, type = 0) {
-    super()
-    this.text = text
-    this.type = type
-    this.rect.size.x = text.length *
-      Engine.dpi * Debug.fontSize * 0.6
-    this.rect.size.y = Debug.fontSize * Engine.dpi + 4
-  }
-
-  Render(ctx) {
-    ctx.textAlign = "left"
-    ctx.textBaseline = "top"
-    ctx.font = Debug.fontSize * Engine.dpi + "px monospace"
-    ctx.lineWidth = Engine.dpi
-
-    if (this.type == 0) {
-      ctx.strokeStyle = "white"
-      ctx.fillStyle = "black"
-    }
-    if (this.type == 1) {
-      ctx.strokeStyle = "cyan"
-      ctx.fillStyle = "rgb(60, 60, 20)"
-    }
-    if (this.type == 2) {
-      ctx.strokeStyle = "white"
-      ctx.fillStyle = "red"
-    }
-    ctx.translate(this.rect.position.x,
-      this.rect.position.y)
-    ctx.strokeText(this.text, 0, 0)
-    ctx.fillText(this.text, 0, 0)
-  }
-}
-
-
-
-class FuncMessage extends DebugMessage {
-  func; len
-
-  constructor(func = EmptyFunc, maxLen = 16) {
-    super()
-    this.func = func
-    this.len = maxLen
-    this.rect.size.x = maxLen *
-      Engine.dpi * Debug.fontSize * 0.6
-    this.rect.size.y = Debug.fontSize * Engine.dpi + 4
-  }
-
-  Render(ctx) {
-    ctx.textAlign = "left"
-    ctx.textBaseline = "top"
-    ctx.font = Debug.fontSize * Engine.dpi + "px monospace"
-    ctx.lineWidth = Engine.dpi
-
-    ctx.strokeStyle = "lime"
-    ctx.fillStyle = "darkgray"
-
-    const txt = this.func().toString()
-
-    ctx.translate(this.rect.position.x,
-      this.rect.position.y)
-    ctx.strokeText(txt, 0, 0)
-    ctx.fillText(txt, 0, 0)
-  }
-}
-
-
-
-class InfoMessage extends DebugMessage {
-  // info object created from given one
-  static InfoData = class {
-    object; className; properties = {}
-
-    constructor(obj) {
-      this.object = obj
-
-      let s = obj.constructor.toString()
-      if (s.startsWith("class")) {
-        this.className = /^class\s+(\w+)/.exec(s)[1]
-        // grab all properties from object
-        for (let prop in obj) {
-          let dat = obj[prop]
-          if (typeof dat == "string") {
-            dat = "\"" + dat + "\""
-          } else if (typeof dat == "function") {
-            dat = "function(...) {...}"
-          } else if (dat instanceof Array) {
-            dat = "Array(" + dat.length + ")"
-          } else if (dat instanceof MonoBehavior) {
-            const tp = /^class\s+(\w+)/.exec
-              (dat.constructor.toString())[1]
-            dat = tp + " (from MonoBehavior)"
-          } else if (dat === null) {
-            dat = "null"
-          } else {
-            dat = dat.toString()
-          }
-          this.properties[prop] = dat
-        }
-      } else {
-        Debug.Error("Debug.ShowInfo: given object is not an instance of a class.")
-      }
-    }
-
-    Update() {
-      this.properties = {}
-      // grab all properties from object
-      for (let prop in this.object) {
-        let dat = this.object[prop]
-        if (typeof dat == "string") {
-          dat = "\"" + dat + "\""
-        } else if (typeof dat == "function") {
-          dat = "function(...) {...}"
-        } else if (dat instanceof Array) {
-          dat = "Array(" + dat.length + ")"
-        } else if (dat instanceof MonoBehavior) {
-          const tp = /^class\s+(\w+)/.exec
-            (dat.constructor.toString())[1]
-          dat = tp + " (from MonoBehavior)"
-        } else if (dat === null) {
-          dat = "null"
-        } else {
-          dat = dat.toString()
-        }
-        this.properties[prop] = dat
-      }
-    }
-  }
-
-  chainable = false
-  object; info
-
-  constructor(obj) {
-    super()
-    this.object = obj
-    this.info = new InfoMessage.InfoData(obj)
-    let i = 2
-    for (let p in this.info.properties) i++
-    this.rect.size.y = i * (Engine.dpi
-      * Debug.fontSize + 4)
-  }
-
-  Render(ctx) {
-    ctx.textAlign = "left"
-    ctx.textBaseline = "top"
-    ctx.font = Debug.fontSize * Engine.dpi + "px monospace"
-    ctx.lineWidth = 2 * Engine.dpi
-
-    ctx.strokeStyle = "white"
-    ctx.fillStyle = "rgb(25, 50, 255)"
-
-    this.info.Update()
-
-    let txt = this.info.className + " {\n"
-    for (let prop in this.info.properties) {
-      txt += "  " + prop + ": " + this.info.properties[prop] + "\n"
-    }
-
-    txt += "}"
-    txt = txt.split("\n")
-
-    ctx.translate(this.rect.position.x,
-      this.rect.position.y)
-    txt.forEach(txt => {
-      ctx.strokeText(txt, 0, 0)
-      ctx.fillText(txt, 0, 0)
-      ctx.translate(0, Debug.fontSize * Engine.dpi + 4)
-    })
-  }
-}
-
-
-
-class FPSMessage extends DebugMessage {
-  _fps = 60; _lastTime = 0; updateTime = 0.25
-
-  constructor() {
-    super()
-    this.rect.size.x = 7 * 0.6 *
-      (Engine.dpi * Debug.fontSize + 4)
-    this.rect.size.y = Engine.dpi
-      * Debug.fontSize + 4
-  }
-
-  get fps() {
-    if (this._lastTime + this.updateTime
-      < Time.time) {
-      this._lastTime = Time.time
-      this._fps = Math.round(1 / Time.deltaTime)
-    }
-    return this._fps
-  }
-
-  Render(ctx) {
-    ctx.textAlign = "left"
-    ctx.textBaseline = "top"
-    ctx.font = Debug.fontSize * Engine.dpi + "px monospace"
-    ctx.lineWidth = 2 * Engine.dpi
-
-    const fps = "FPS: " + this.fps
-    ctx.translate(this.rect.position.x,
-      this.rect.position.y)
-    ctx.fillStyle = Color.Lerp(Color.red, Color.green, this._fps / 60).rgba
-    ctx.fillRect(0, 0,
-      this.rect.size.x, this.rect.size.y - 4)
-    ctx.strokeStyle = "white"
-    ctx.fillStyle = "black"
-    ctx.strokeText(fps, 0, 0)
-    ctx.fillText(fps, 0, 0)
-  }
-}
-
-
-
-class Debug {
-  static active = true
-  static fontSize = 8
-
-  static _screenMessages = []
-
-  // updates position of all messages
-  static _RepositionMessages() {
-    let pos = Vector.zero
-    Debug._screenMessages.forEach(msg => {
-      // if is chained to other - grab from
-      // current flow stream and reposition
-      if (msg.chainedTo != null) {
-        msg.rect.position.Copy(msg.
-          chainedTo.rect.position)
-        msg.rect.position.x += msg.
-          chainedTo.rect.size.x
-      } else {
-        msg.rect.position.Copy(pos)
-        pos.y += msg.rect.size.y
-      }
-    })
-  }
-
-  // filters positioned messages
-  static _FilterMessages() {
-    const msgs = Debug._screenMessages
-    while (msgs.length != 0) {
-      let msg = msgs[msgs.length - 1]
-      if (msg.rect.position.y + msg.rect.
-        size.y < Engine.targetCanvas.height)
-        break // all good - leave cycle
-      else {
-        // delete first log and
-        // warning messages
-        let founded = false
-        for (let i = 0; i < msgs.length; i++)
-          if (msgs[i] instanceof TextMessage &&
-            msgs[i].type != TextMessage.Type.error) {
-            msgs.splice(i, 1)
-            founded = true
-            break
-          }
-        // remove very first message
-        if (!founded) msgs.shift()
-      }
-      Debug._RepositionMessages()
-    }
-  }
-
-  static RenderScreenMessages() {
-    const ctx = Engine.targetContext
-    const msgs = Debug._screenMessages
-
-    for (let i = 0; i < msgs.length; i++) {
-      ctx.save()
-      msgs[i].Render(ctx)
-      ctx.restore()
-    }
-  }
-
-  // base function for adding
-  // any type of message
-  static _AddMessage(msg) {
-    Debug._screenMessages.push(msg)
-    Debug._RepositionMessages()
-    Debug._FilterMessages()
-    return msg
-  }
-
-  // multifunctional method for showing
-  // info about object
-  static ShowInfo(obj) {
-    return Debug._AddMessage
-      (new InfoMessage(obj))
-  }
-
-  // custom function dynamic debug message
-  static ShowInfoFunc(func, maxLen = 16) {
-    return Debug._AddMessage
-      (new FuncMessage(func, maxLen))
-  }
-
-  static Log(str) {
-    return Debug._AddMessage
-      (new TextMessage(str, 0))
-  }
-
-  static Warn(str) {
-    return Debug._AddMessage
-      (new TextMessage(str, 1))
-  }
-
-  static Error(str) {
-    return Debug._AddMessage
-      (new TextMessage(str, 2))
-  }
-
-  static ShowFPS() {
-    return Debug._AddMessage
-      (new FPSMessage())
-  }
 }
 
 
@@ -2231,8 +1498,10 @@ window.addEventListener("load", () => {
     }
   }
 
-  if (Engine.Setup == EmptyFunc)
+  if (Engine.Setup == EmptyFunc) {
     Debug.Error("You need to specify your own Engine.Setup function.")
+    return
+  }
 
   let startTime = Date.now()
   requestAnimationFrame(intro)
